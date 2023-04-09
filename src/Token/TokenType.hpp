@@ -18,7 +18,7 @@ namespace CComp
         RIGHT_BRACKET,
 
         END_OF_FILE,
-        ERROR
+        ERROR,
     }; // enum class TokenType
 
 } // namespace CComp

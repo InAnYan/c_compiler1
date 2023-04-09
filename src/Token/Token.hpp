@@ -4,7 +4,7 @@
 #include <string>
 
 #include "TokenType.hpp"
-#include "FilePosition.hpp"
+#include "../File/FilePosition.hpp"
 
 namespace CComp
 {
@@ -18,6 +18,10 @@ namespace CComp
             : type(type),
               str(str),
               pos(pos)
+        {}
+
+        Token()
+            : type(TokenType::IDENTIFIER), str("null"), pos(FilePosition(0, nullptr))
         {}
     }; // struct Token
 

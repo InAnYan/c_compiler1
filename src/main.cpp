@@ -1,28 +1,37 @@
 #include <iostream>
 
+#include "ArgParser.hpp"
+#include "File/Reader.hpp"
+
 #include "Scanner.hpp"
+#include "Parser.hpp"
 
-using namespace CComp;
-
-int main()
+int main(int argc, char* argv[])
 {
-    std::shared_ptr<File> file = std::make_shared<File>();
+    CComp::ArgParser argParser(argc - 1, argv + 1);
 
-    std::string src = "int main() { \nreturn ;}";
-
-    for (char ch : src)
+    std::filesystem::path sourceFilePath = argParser.GetSourceFilePath();
+    if (sourceFilePath.empty())
     {
-        file->push_back(ch);
+        std::cerr << "Error: no source file provided." << std::endl;
+        return 1;
     }
 
-    Scanner scanner(ScannerConfiguration(), file);
+    std::shared_ptr<CComp::File> file = CComp::ReadFile(sourceFilePath);
+    if (file == nullptr)
+    {
+        std::cerr << "Error: could not read the source file." << std::endl;
+        return 1;
+    }
+
+    CComp::Scanner scanner(argParser.GenerateScannerConfiguration(), file);
 
     while (true)
     {
-        Token token = scanner.NextToken();
+        CComp::Token token = scanner.NextToken();
         std::cout << static_cast<int>(token.type) << ":" << token.pos.line << ": " << token.str << std::endl;
 
-        if (token.type == TokenType::END_OF_FILE)
+        if (token.type == CComp::TokenType::END_OF_FILE)
         {
             break;
         }

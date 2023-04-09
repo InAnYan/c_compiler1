@@ -1,5 +1,11 @@
 #include "Scanner.hpp"
 
+#include "File/Reader.hpp"
+
+
+#include <iostream>
+
+
 namespace CComp
 {
     bool IsAlpha(char ch)
@@ -14,20 +20,24 @@ namespace CComp
     }
 
     Scanner::Scanner(const ScannerConfiguration& configuration, std::shared_ptr<const File> file)
-        : m_Configuration(configuration), m_File(file),
-          m_Line(0),
-          m_Start(file->begin()),
-          m_Current(m_Start)
-    {}
+        : m_Configuration(configuration)
+    {
+        BeginNewFile(file);
+    }
 
     Token Scanner::NextToken()
     {
         SkipWhitespace();
-
-        m_Start = m_Current;
+        BeginNewToken();
 
         if (IsAtEnd())
         {
+            if (!m_States.empty())
+            {
+                PopState();
+                return NextToken();
+            }
+
             return MakeToken(TokenType::END_OF_FILE);
         }
 
@@ -41,12 +51,14 @@ namespace CComp
         case '{': return MakeToken(TokenType::LEFT_BRACKET);
         case '}': return MakeToken(TokenType::RIGHT_BRACKET);
 
+        case '#': return Directive();
+
         default:
-            if (IsAlpha(Peek()) || Peek() == '_')
+            if (IsAlpha(ch) || ch == '_')
             {
                 return IdentifierOrKeyword();
             }
-            else if (IsDigit(Peek()))
+            else if (IsDigit(ch))
             {
                 return Number();
             }
@@ -79,6 +91,19 @@ namespace CComp
         }
     }
 
+    void Scanner::BeginNewToken()
+    {
+        m_Start = m_Current;
+    }
+
+    void Scanner::BeginNewFile(std::shared_ptr<const File> file)
+    {
+        m_File = file;
+        m_Line = 0;
+        m_Start = file->begin();
+        m_Current = m_Start;
+    }
+
     char Scanner::Peek(size_t offset) const
     {
         return m_Current[offset];
@@ -109,6 +134,18 @@ namespace CComp
         {
             return IsAlpha(ch) || IsDigit(ch) || ch == '_';
         });
+
+        std::string name = std::string(m_Start, m_Current);
+
+        if (m_Macro.count(name) != 0)
+        {
+            Macro& macro = m_Macro[name];
+
+            PushState();
+            BeginNewFile(std::make_shared<File>(macro.rewrite)); // It's a hack. What if File type changes?
+
+            return NextToken();
+        }
 
         return MakeToken(CheckKeyword());
     }
@@ -161,5 +198,161 @@ namespace CComp
     FilePosition Scanner::MakeCurrentPosition() const
     {
         return FilePosition(m_Line, m_File);
+    }
+
+    Token Scanner::Directive()
+    {
+        m_Start++;
+        Token directive = IdentifierOrKeyword();
+
+        SkipWhitespace();
+        BeginNewToken();
+        
+        if (directive.str == "include")
+        {
+            return IncludeDirective();
+        }
+        else if (directive.str == "define")
+        {
+            return DefineDirective();
+        }
+        else
+        {
+            return MakeErrorToken("unknown preprocessor directive");
+        }
+    }
+
+    Token Scanner::IncludeDirective()
+    {
+        if (IsAtEnd())
+        {
+            return MakeErrorToken("expected include path");
+        }
+
+        char endChar;
+        switch (Advance())
+        {
+        case '"': endChar = '"'; break;
+        case '<': endChar = '>'; break;
+        default:
+            return MakeErrorToken("expected '\"' or '<");
+        }
+
+        AdvanceWhile([endChar] (char ch)
+        {
+            return ch != endChar;
+        });
+
+        if (IsAtEnd())
+        {
+            return MakeErrorToken("expected end of include path");
+        }
+
+        Advance();
+
+        std::string path(m_Start + 1, m_Current - 1);
+
+        std::shared_ptr<const File> file = ReadFile(std::filesystem::path(path));
+        if (file == nullptr)
+        {
+            return MakeErrorToken("unable to read file '" + path + "'");
+        }
+
+        PushState();
+        BeginNewFile(file);
+
+        return NextToken();
+    }
+
+    Token Scanner::DefineDirective()
+    {
+        if (IsAtEnd())
+        {
+            return MakeErrorToken("expected macro name");
+        }
+
+        SkipWhitespace();
+        BeginNewToken();
+
+        Token name = IdentifierOrKeyword();
+        std::vector<char> rewrite;
+        bool isFunction = false;
+        size_t argCount = 0;
+        
+        SkipWhitespace();
+        BeginNewToken();
+
+        if (Peek() == '(')
+        {
+            AdvanceWhile([] (char ch)
+            {
+                return ch != ')';
+            });
+
+            if (IsAtEnd())
+            {
+                return MakeErrorToken("expected ')' after parameter list");
+            }
+
+            Advance();
+
+            isFunction = true;
+        }
+
+        while (!IsAtEnd())
+        {
+            SkipWhitespace();
+            BeginNewToken();
+
+            AdvanceWhile([] (char ch)
+            {
+                return ch != '\n';
+            });
+
+            rewrite.insert(rewrite.end(), m_Start, m_Current);
+
+            if (rewrite.back() == '\\')
+            {
+                rewrite.pop_back();
+                rewrite.push_back('\n');
+                continue;
+            }
+
+            break;
+        }
+
+        if (rewrite.back() == '\n')
+        {
+            rewrite.pop_back();
+        }
+
+        if (isFunction)
+        {
+            return MakeErrorToken("function-like macro are not supported");
+        }
+        else
+        {
+            m_Macro[name.str] = { isFunction, argCount, rewrite };
+
+            return NextToken();
+        }
+    }
+
+    void Scanner::PushState()
+    {
+        m_States.push_back({ m_File, m_Line, m_Start, m_Current });
+    }
+
+    void Scanner::PopState()
+    {
+        // assert !state.empty();
+        
+        ScannerState state = m_States.back();
+        m_States.pop_back();
+
+        m_File = state.file;
+        m_Line = state.line;
+        m_Start = state.start;
+        m_Current = state.current;
     }
 }

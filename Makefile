@@ -7,7 +7,7 @@ BIN_DIR=bin
 INC_DIR=include
 SRC_DIR=src
 OBJ_DIR=obj
-SUBDIRS=.
+SUBDIRS=. File AST Token
 
 INCLUDES_DIRS=
 LIBS_DIRS=/usr/local/lib
@@ -42,7 +42,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(FULL_CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(BIN_DIR)/*.exe $(BIN_DIR)/*.out $(BIN_DIR)/*.bin $(OBJ_DIR)/*
+	rm $(FULL_EXEC) $(OBJS)
 
 run:
 	./bin/$(PROJECT_NAME).out
