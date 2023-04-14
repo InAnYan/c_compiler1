@@ -44,12 +44,12 @@ namespace CComp
         public:
             FunctionDecl(FilePosition pos,
                          std::unique_ptr<Type> returnType,
-                         const std::string& str,
+                         const std::string& name,
                          std::vector<std::unique_ptr<Parameter>> parameters,
                          std::unique_ptr<BlockStmt> body)
                 : Decl(pos),
                   returnType(std::move(returnType)),
-                  str(str),
+                  name(name),
                   parameters(std::move(parameters)),
                   body(std::move(body))
             {}
@@ -60,10 +60,11 @@ namespace CComp
             }
 
             std::unique_ptr<Type> returnType;
-            std::string str;
+            std::string name;
             std::vector<std::unique_ptr<Parameter>> parameters;
             std::unique_ptr<BlockStmt> body;
         };
+
     } // namespace AST
 } // namespace CComp
 

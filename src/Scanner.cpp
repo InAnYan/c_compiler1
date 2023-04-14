@@ -2,12 +2,14 @@
 
 #include "File/Reader.hpp"
 
-
-#include <iostream>
-
-
 namespace CComp
 {
+    std::unordered_map<std::string, TokenType> g_StringToKeyword =
+    {
+        { "int", TokenType::INT },
+        { "return", TokenType::RETURN }
+    };
+
     bool IsAlpha(char ch)
     {
         return (ch >= 'a' && ch <= 'z')
@@ -50,6 +52,74 @@ namespace CComp
         case ')': return MakeToken(TokenType::RIGHT_PAREN);
         case '{': return MakeToken(TokenType::LEFT_BRACKET);
         case '}': return MakeToken(TokenType::RIGHT_BRACKET);
+
+        case '-': return Match('-')
+                ? MakeToken(TokenType::MINUS_MINUS)
+                : Match('=')
+                  ? MakeToken(TokenType::MINUS_EQUAL)
+                  : MakeToken(TokenType::MINUS);
+
+        case '+': return Match('+')
+                ? MakeToken(TokenType::PLUS_PLUS)
+                : Match('=')
+                  ? MakeToken(TokenType::PLUS_EQUAL)
+                  : MakeToken(TokenType::PLUS);
+
+        case '*': return Match('=')
+                ? MakeToken(TokenType::STAR_EQUAL)
+                : MakeToken(TokenType::STAR);
+
+        case '/': return Match('=')
+                ? MakeToken(TokenType::SLASH_EQUAL)
+                : MakeToken(TokenType::SLASH);
+
+        case '%': return Match('=')
+                ? MakeToken(TokenType::PERCENT_EQUAL)
+                : MakeToken(TokenType::PERCENT);
+
+        case '^': return Match('=')
+                ? MakeToken(TokenType::UP_ARROW_EQUAL)
+                : MakeToken(TokenType::UP_ARROW);
+
+        case '|': return Match('=')
+                ? MakeToken(TokenType::BAR_EQUAL)
+                : Match('|')
+                  ? MakeToken(TokenType::BAR_BAR)
+                  : MakeToken(TokenType::BAR);
+
+        case '&': return Match('=')
+                ? MakeToken(TokenType::AMPERSAND_EQUAL)
+                : Match('&')
+                  ? MakeToken(TokenType::AMPERSAND_AMPERSAND)
+                  : MakeToken(TokenType::AMPERSAND);
+
+        case '~': return Match('=')
+                ? MakeToken(TokenType::TILDA_EQUAL)
+                : MakeToken(TokenType::TILDA);
+
+        case '!': return Match('=')
+                ? MakeToken(TokenType::BANG_EQUAL)
+                : MakeToken(TokenType::BANG);
+
+        case '=': return Match('=')
+                ? MakeToken(TokenType::EQUAL_EQUAL)
+                : MakeToken(TokenType::EQUAL);
+
+        case '>': return Match('=')
+                ? MakeToken(TokenType::GREATER_EQUAL)
+                : Match('>')
+                  ? (Match('=')
+                    ? MakeToken(TokenType::GREATER_GREATER_EQUAL)
+                    : MakeToken(TokenType::GREATER_GREATER))
+                  : MakeToken(TokenType::GREATER);
+
+        case '<': return Match('=')
+                ? MakeToken(TokenType::LESS_EQUAL)
+                : Match('<')
+                  ? (Match('=')
+                    ? MakeToken(TokenType::LESS_LESS_EQUAL)
+                    : MakeToken(TokenType::LESS_LESS))
+                  : MakeToken(TokenType::LESS);
 
         case '#': return Directive();
 
@@ -128,6 +198,17 @@ namespace CComp
         }
     }
 
+    bool Scanner::Match(char ch)
+    {
+        if (IsAtEnd() || Peek() != ch)
+        {
+            return false;
+        }
+
+        Advance();
+        return true;
+    }
+
     Token Scanner::IdentifierOrKeyword()
     {
         AdvanceWhile([] (char ch)
@@ -142,12 +223,12 @@ namespace CComp
             Macro& macro = m_Macro[name];
 
             PushState();
-            BeginNewFile(std::make_shared<File>(macro.rewrite)); // It's a hack. What if File type changes?
+            BeginNewFile(std::make_shared<File>(macro.rewrite)); // That's a hack. What if File type changes?
 
             return NextToken();
         }
 
-        return MakeToken(CheckKeyword());
+        return MakeToken(CheckKeyword(name));
     }
 
     Token Scanner::Number()
@@ -160,29 +241,18 @@ namespace CComp
         return MakeToken(TokenType::INTEGER_NUMBER);
     }
 
-    TokenType Scanner::CheckKeyword() const
+    TokenType Scanner::CheckKeyword(const std::string& str) const
     {
-        // assert m_Current != m_Start;
+        auto iter = g_StringToKeyword.find(str);
 
-        switch (*m_Start)
+        if (iter != g_StringToKeyword.end())
         {
-        case 'i': return CheckRest(TokenType::INT, "nt", 1);
-        case 'r': return CheckRest(TokenType::RETURN, "eturn", 1);
-        default:  return TokenType::IDENTIFIER;
+            return iter->second;
         }
-    }
-
-    TokenType Scanner::CheckRest(TokenType keyword, const std::string& str, size_t count) const
-    {
-        for (size_t i = count; i - count < str.size(); i++)
+        else
         {
-            if (*(m_Start + i) != str[i - count])
-            {
-                return TokenType::IDENTIFIER;
-            }
+            return TokenType::IDENTIFIER;
         }
-
-        return keyword;
     }
 
     Token Scanner::MakeToken(TokenType type) const

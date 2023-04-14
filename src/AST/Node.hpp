@@ -13,14 +13,14 @@ namespace CComp
         {
         public:
             Node(FilePosition pos)
-                : m_Pos(pos)
+                : pos(pos)
             {}
 
             virtual ~Node() = default;
 
             virtual void Accept(Visitor& visitor) = 0;
 
-            FilePosition m_Pos;
+            FilePosition pos;
         };
     } // namespace AST
 } // namespace CComp

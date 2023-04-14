@@ -18,6 +18,8 @@ namespace CComp
         class Stmt;
         class BlockStmt;
         class ReturnStmt;
+        class ExprStmt;
+        class VarDeclStmt;
 
         // Type.hpp
         class Type;
@@ -26,6 +28,12 @@ namespace CComp
         // Expr.hpp
         class Expr;
         class IntegerNumberExpr;
+        class UnaryOpExpr;
+        class BinaryOpExpr;
+        class AssignExpr;
+        class VarExpr;
+        enum class BinaryOp;
+        enum class AssignOp;
     } // namespace AST
 } // namespace CComp
 

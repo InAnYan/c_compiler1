@@ -6,6 +6,8 @@
 #include "Scanner.hpp"
 #include "Parser.hpp"
 
+#include "Visitors/CodeGenVisitor.hpp"
+
 int main(int argc, char* argv[])
 {
     CComp::ArgParser argParser(argc - 1, argv + 1);
@@ -26,16 +28,27 @@ int main(int argc, char* argv[])
 
     CComp::Scanner scanner(argParser.GenerateScannerConfiguration(), file);
 
+    /* 
     while (true)
     {
         CComp::Token token = scanner.NextToken();
-        std::cout << static_cast<int>(token.type) << ":" << token.pos.line << ": " << token.str << std::endl;
+
+        std::cout << static_cast<int>(token.type) << ": " << token.str << std::endl;
 
         if (token.type == CComp::TokenType::END_OF_FILE)
         {
             break;
         }
     }
+    */
+    
+    CComp::Parser parser(scanner);
 
+    auto v = parser.Parse();
+
+    CComp::CodeGenVisitor vis(std::cout);
+
+    vis.Compile(v);
+    
     return 0;
 }

@@ -64,12 +64,12 @@ namespace CComp
 
         char Advance();
         void AdvanceWhile(const std::function<bool(char)> func);
+        bool Match(char ch);
 
         Token IdentifierOrKeyword();
         Token Number();
 
-        TokenType CheckKeyword() const;
-        TokenType CheckRest(TokenType keyword, const std::string& str, size_t count) const;
+        TokenType CheckKeyword(const std::string& str) const;
 
         Token MakeToken(TokenType type) const;
         Token MakeErrorToken(const std::string& msg) const;

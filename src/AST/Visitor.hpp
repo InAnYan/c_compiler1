@@ -18,6 +18,12 @@ namespace CComp
             virtual void VisitIntegerNumberExpr(IntegerNumberExpr& node) = 0;
             virtual void VisitBlockStmt(BlockStmt& node) = 0;
             virtual void VisitReturnStmt(ReturnStmt& node) = 0;
+            virtual void VisitUnaryOpExpr(UnaryOpExpr& node) = 0;
+            virtual void VisitBinaryOpExpr(BinaryOpExpr& node) = 0;
+            virtual void VisitVarDeclStmt(VarDeclStmt& node) = 0;
+            virtual void VisitExprStmt(ExprStmt& node) = 0;
+            virtual void VisitVarExpr(VarExpr& node) = 0;
+            virtual void VisitAssignExpr(AssignExpr& node) = 0;
         }; // class Visitor
     } // namespace AST
     

@@ -48,6 +48,40 @@ namespace CComp
 
             std::unique_ptr<Expr> expr;
         }; // class ReturnStmt
+        
+        class ExprStmt : public Stmt
+        {
+        public:
+            ExprStmt(FilePosition pos, std::unique_ptr<Expr> expr)
+                : Stmt(pos),
+                  expr(std::move(expr))
+            {}
+
+            virtual void Accept(Visitor& visitor)
+            {
+                visitor.VisitExprStmt(*this);
+            }
+
+            std::unique_ptr<Expr> expr;
+        }; // class ExprStmt
+        
+        class VarDeclStmt : public Stmt
+        {
+        public:
+            VarDeclStmt(FilePosition pos, std::unique_ptr<Type> type, const std::string& name, std::unique_ptr<Expr> init)
+                : Stmt(pos), type(std::move(type)), name(name), init(std::move(init))
+            {}
+
+            virtual void Accept(Visitor& visitor)
+            {
+                visitor.VisitVarDeclStmt(*this);
+            }
+
+            std::unique_ptr<Type> type;
+            std::string name;
+            std::unique_ptr<Expr> init;
+        }; // class VarDecl
+
     } // namespace AST
 } // namespace CComp
 
